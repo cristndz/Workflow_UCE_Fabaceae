@@ -1,3 +1,9 @@
+## genome location
+/scratch_local/JMA/PROYECTO_CLOROPLASTO_CRISTIAN/FABACEAE-UCE/genomes
+
+## put each genome in its own directory
+for critter in *; do mkdir ${critter%.*}; mv $critter ${critter%.*}; done
+
 ##convert genomes to 2bit
 faToTwoBit name_file.fasta name_file.2bit
 
@@ -12,14 +18,10 @@ faToTwoBit name_file.fasta name_file.2bit
     --sdev 150 \
     -ir 0.0 -ir2 0.0 -dr 0.0 -dr2 0.0 -qs 100 -qs2 100 -na
 
---La última línea apaga la simulación de error de secuenciación en cada una 
-  de estas lecturas y también desactiva la creación de un archivo de alineación
-  que muestra de dónde provienen las lecturas en la secuencia del genoma.--
-
 # Combine paired reads and compress
 
 for critter in ariBati ariCarde ariDio ariDuran ariHelo ariHoeh ariHypo ariHypo2 
-ariHypo3 ariHypo4 ariHypo5 ariHypo6 ariHypo7 ariIpae ariMonti ariParagu ariStenos ariVillo;
+ariHypo3 ariHypo4 ariHypo5 ariHypo6 ariHypo7 ariIpae ariMonti ariParagu ariStenos ariVillo ...;
 > do
 > echo "working on $critter";
 > touch $critter-pe100-reads.fq;
@@ -32,15 +34,17 @@ ariHypo3 ariHypo4 ariHypo5 ariHypo6 ariHypo7 ariIpae ariMonti ariParagu ariSteno
 
 # Prep base genome (Stampy)
 
-/source/stampy/stampy 1.0../stampy.py --species="arachis_hypogea" --assembly="araHypo" -G araHypo araHypo.fasta
-/source/stampy/stampy 1.0../stampy.py -g araHypo -H araHypo
+/source/stampy/stampy 1.0../stampy.py --species="arachis_hypogea" --assembly="Inga_leiocalycina_KT428296" -G Inga_leiocalycina_KT428296 Inga_leiocalycina_KT428296.fasta
+/source/stampy/stampy 1.0../stampy.py -g Inga_leiocalycina_KT428296 -H Inga_leiocalycina_KT428296
 
 # Align simulated reads to the base genome
 
+mkdir alignments
+
 export cores=4
-export base=araHypo
-export base_dir=/scratch_local/JMA/PROYECTO_CLOROPLASTO_CRISTIAN/uce-arachis/alignments
-for critter in araBati araCarde araDio araDuran araHelo araHoeh araHypo2 araHypo3 araHypo4 araHypo5 araHypo6 araHypo7 araIpae araMonti araParagu araStenos araVillo;
+export base=Inga_leiocalycina_KT428296
+export base_dir=/scratch_local/JMA/PROYECTO_CLOROPLASTO_CRISTIAN/FABACEAE-UCE/alignments
+for critter in araBati araCarde araDio araDuran araHelo araHoeh araHypo2 araHypo3 araHypo4 araHypo5 araHypo6 araHypo7 araIpae araMonti araParagu araStenos araVillo ...;
     do
         export reads=$critter-pe100-reads.fq.gz;
         mkdir -p $base_dir/$critter;
@@ -51,13 +55,21 @@ for critter in araBati araCarde araDio araDuran araHelo araHoeh araHypo2 araHypo
     done;
 
 # Remove unmapped reads from files BAM
+cd alignments
+mkdir all
 
-for critter in araBati araCarde araDio araDuran araHelo araHoeh araHypo2 araHypo3 araHypo4 araHypo5 araHypo6 araHypo7 araIpae araMonti araParagu araStenos araVillo;
+for critter in araBati araCarde araDio araDuran araHelo araHoeh araHypo2 araHypo3 araHypo4 araHypo5 araHypo6 araHypo7 araIpae araMonti araParagu araStenos araVillo ...;
     do
         samtools view -h -F 4 -b $critter/$critter-to-araHypo.bam > $critter/$critter-to-araHypo-MAPPING.bam;
         rm $critter/$critter-to-araHypo.bam;
-        ln -s ../$critter/$critter-to-araHypo-MAPPING.bam all/$critter-to-araHypo-MAPPING.bam;
+        ln -s ../$critter/$critter-to-Inga_leiocalycina_KT428296-MAPPING.bam all/$critter-to-Inga_leiocalycina_KT428296-MAPPING.bam;
     done;
+
+------------------------------------------------------- PHYLUCE ----------------------------------------------- 
+
+conda activate phyluce-1.7.1 
+mkdir bed # in main directory
+cd bed    
 
 # Now, convert our *-MAPPING.bam files to BED format
 for i in ../alignments/all/*.bam; do echo $i; bedtools bamtobed -i $i -bed12 > `basename $i`.bed; done
@@ -76,19 +88,11 @@ for i in *.bam.sort.merge.bed; do wc -l $i; done
 412 araCarde-to-araHypo-MAPPING.bam.sort.merge.bed
 410 araDio-to-araHypo-MAPPING.bam.sort.merge.bed
 416 araDuran-to-araHypo-MAPPING.bam.sort.merge.bed
-405 araHelo-to-araHypo-MAPPING.bam.sort.merge.bed
-416 araHoeh-to-araHypo-MAPPING.bam.sort.merge.bed
-422 araHypo2-to-araHypo-MAPPING.bam.sort.merge.bed
-405 araHypo3-to-araHypo-MAPPING.bam.sort.merge.bed
-421 araHypo4-to-araHypo-MAPPING.bam.sort.merge.bed
-395 araHypo5-to-araHypo-MAPPING.bam.sort.merge.bed
-399 araHypo6-to-araHypo-MAPPING.bam.sort.merge.bed
-402 araHypo7-to-araHypo-MAPPING.bam.sort.merge.bed
-441 araIpae-to-araHypo-MAPPING.bam.sort.merge.bed
-404 araMonti-to-araHypo-MAPPING.bam.sort.merge.bed
-410 araParagu-to-araHypo-MAPPING.bam.sort.merge.bed
-398 araStenos-to-araHypo-MAPPING.bam.sort.merge.bed
-413 araVillo-to-araHypo-MAPPING.bam.sort.merge.bed
+
+
+------------------------------------------------------- PHYLUCE ----------------------------------------------- 
+conda activate phyluce-1.7.1 
+
 
 # Remove repetitive intervals
 
@@ -107,19 +111,6 @@ Screened 415 sequences from araBati-to-araHypo-MAPPING.bam.sort.merge.bed.  Filt
 Screened 412 sequences from araCarde-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 412.
 Screened 410 sequences from araDio-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 410.
 Screened 416 sequences from araDuran-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 416.
-Screened 405 sequences from araHelo-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 405.
-Screened 416 sequences from araHoeh-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 416.
-Screened 422 sequences from araHypo2-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 422.
-Screened 405 sequences from araHypo3-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 405.
-Screened 421 sequences from araHypo4-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 421.
-Screened 395 sequences from araHypo5-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 395.
-Screened 399 sequences from araHypo6-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 399.
-Screened 402 sequences from araHypo7-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 402.
-Screened 441 sequences from araIpae-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 441.
-Screened 404 sequences from araMonti-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 404.
-Screened 410 sequences from araParagu-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 410.
-Screened 398 sequences from araStenos-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 398.
-Screened 413 sequences from araVillo-to-araHypo-MAPPING.bam.sort.merge.bed.  Filtered 0 with > 25.0% masked bases or > 0 N-bases or < 80 length. Kept 413.
 
 # Determining locus presence in multiple genomes 
 ----------create file configuration--------------
@@ -349,29 +340,3 @@ GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
 
 
 Conserved locus count = 161
-Probe Count = 5413
-
-# Remove duplicates from our bait set
-
-phyluce_probe_easy_lastz \
-> --target arachis-v1-master-probe-list.fasta \
-> --query arachis-v1-master-probe-list.fasta \
-> --identity 50 \
-> --coverage 50 \
-> --output arachis-v1-master-probe-list-TO-SELF-PROBES.lastz
-Started:  Sun Nov 15, 2020  18:04:35
-Ended:  Sun Nov 15, 2020  18:04:43
-Time for execution:  0.130896615982 minutes
-
-# Now, screen the alignements and filter our master probe list to remove duplicates
-
-phyluce_probe_remove_duplicate_hits_from_probes_using_lastz 
---fasta arachis-v1-master-probe-list.fasta 
---lastz arachis-v1-master-probe-list-TO-SELF-PROBES.lastz 
---probe-prefix=uce-
-
-Parsing lastz file...
-Screening results...
-Screened 5412 fasta sequences.  Filtered 0 duplicates. Kept 5413
-
-The master probe list that has been filtered of putatively duplicate loci is now located in arachis-v1-master-probe-list-DUPE-SCREENED.fasta.
